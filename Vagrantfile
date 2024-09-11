@@ -1,32 +1,31 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
 Vagrant.configure("2") do |config|
- # The most common configuration options are documented and commented below.
- # For a complete reference, please see the online documentation at
- # https://docs.vagrantup.com.
+  # Use the Ubuntu 22.04 Jammy box
+  config.vm.box = "ubuntu/jammy64"
 
- # Every Vagrant development environment requires a box. You can search for
- # boxes at https://vagrantcloud.com/search.
- config.vm.box = "ubuntu/bionic64"
- config.vm.box_version = "~> 20200304.0.0"
+  # Forward port 8000 for Django development server
+  config.vm.network "forwarded_port", guest: 8000, host: 8000
 
- config.vm.network "forwarded_port", guest: 8000, host: 8000
+  # Use bridged network for direct internet access
+  config.vm.network "public_network"
 
- config.vm.provision "shell", inline: <<-SHELL
-   systemctl disable apt-daily.service
-   systemctl disable apt-daily.timer
+  # Provisioning shell script to install Python 3.12
+  config.vm.provision "shell", inline: <<-SHELL
+    sudo apt-get update
+    sudo apt-get install -y software-properties-common
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update
+    sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
+    sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
-   sudo apt-get update
-   sudo apt-get install -y python3-venv zip
-   touch /home/vagrant/.bash_aliases
-   if ! grep -q PYTHON_ALIAS_ADDED /home/vagrant/.bash_aliases; then
-     echo "# PYTHON_ALIAS_ADDED" >> /home/vagrant/.bash_aliases
-     echo "alias python='python3'" >> /home/vagrant/.bash_aliases
-   fi
- SHELL
+    # Create Python 3.12 venv and set alias
+    python3.12 -m venv /home/vagrant/env
+    touch /home/vagrant/.bash_aliases
+    if ! grep -q PYTHON_ALIAS_ADDED /home/vagrant/.bash_aliases; then
+      echo "# PYTHON_ALIAS_ADDED" >> /home/vagrant/.bash_aliases
+      echo "alias python='/usr/bin/python3.12'" >> /home/vagrant/.bash_aliases
+    fi
+  SHELL
 end
